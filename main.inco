@@ -10,8 +10,9 @@
 #define DB7_PIN D5
 #define BUTTON_PIN D7
 
-const char* ssid = "Fios-KnCH6";
-const char* password = "swam47mam88argo";
+// Add in your wifi name and password here
+const char* ssid = "name";
+const char* password = "password";
 
 LiquidCrystal lcd(RS_PIN, E_PIN, DB4_PIN, DB5_PIN, DB6_PIN, DB7_PIN);
 
