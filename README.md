@@ -1,4 +1,4 @@
-🕐 WiFi-Enabled Alarm Clock with ESP8266
+##🕐 WiFi-Enabled Alarm Clock with ESP8266
 A simple alarm clock using ESP8266, 16x2 LCD display, and button module. Features WiFi-synced time via NTP, weekday/weekend alarms, and time-based greetings.
 
 📋 Quick Start
@@ -39,15 +39,8 @@ Upload Code:
 
 Connect ESP8266 via USB
 Click Upload
-Open Serial Monitor (115200 baud) to verify
+Open Serial Monitor (115200 baud) to verify. 
 
-
-
-
-🔌 Wiring Table
-ESP8266 PinLCD PinConnectionD0Pin 4 (RS)Register SelectD1Pin 6 (E)EnableD2Pin 11 (DB4)Data Bit 4D3Pin 12 (DB5)Data Bit 5D4Pin 13 (DB6)Data Bit 6D5Pin 14 (DB7)Data Bit 73.3VPin 2 (VDD)PowerGNDPin 1 (VSS)GroundGNDPin 3 (VO)ContrastGNDPin 5 (RW)Write Mode
-Button Module:
-Button PinESP8266 PinS (Signal)D7- (GND)GND+ (VCC)3.3V
 
 🎮 Usage
 Single Click: Shows current time + date with greeting
