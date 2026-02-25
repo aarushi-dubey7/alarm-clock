@@ -1,0 +1,215 @@
+#include <LiquidCrystal.h>
+#include <time.h>
+#include <ESP8266WiFi.h>
+
+#define RS_PIN D0
+#define E_PIN D1
+#define DB4_PIN D2
+#define DB5_PIN D3
+#define DB6_PIN D4
+#define DB7_PIN D5
+#define BUTTON_PIN D7
+
+const char* ssid = "Fios-KnCH6";
+const char* password = "swam47mam88argo";
+
+LiquidCrystal lcd(RS_PIN, E_PIN, DB4_PIN, DB5_PIN, DB6_PIN, DB7_PIN);
+
+int buttonClickCount = 0;
+unsigned long lastButtonPressTime = 0;
+unsigned long lastDisplayUpdateTime = 0;
+#define CLICK_TIMEOUT 1000
+#define DISPLAY_TIMEOUT 5000
+
+bool isDisplaying = false;
+
+void displayCurrentTime();
+void displayAlarmTime();
+void processButtonClicks(int clicks);
+
+void setup() {
+  Serial.begin(115200);
+  delay(100);
+  
+  lcd.begin(16, 2);
+  pinMode(BUTTON_PIN, INPUT);
+  
+  Serial.println("\n\n=== Alarm Clock ===");
+  
+  lcd.setCursor(0, 0);
+  lcd.print("Connecting WiFi");
+  
+  WiFi.begin(ssid, password);
+  
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+    delay(500);
+    Serial.print(".");
+    attempts++;
+  }
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\nWiFi connected!");
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("WiFi Connected");
+    delay(2000);
+  } else {
+    Serial.println("\nWiFi Failed");
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("WiFi Failed");
+    delay(2000);
+  }
+  
+  configTime(-5 * 3600, 0, "pool.ntp.org", "time.nist.gov");
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Syncing Time");
+  delay(3000);
+  
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Alarm Clock");
+  lcd.setCursor(0, 1);
+  lcd.print("Click button");
+}
+
+void loop() {
+  int buttonState = digitalRead(BUTTON_PIN);
+  unsigned long currentTime = millis();
+  
+  if (buttonState == 0) {
+    if (currentTime - lastButtonPressTime > 100) {
+      buttonClickCount++;
+      lastButtonPressTime = currentTime;
+      
+      Serial.print("Button clicked! Count: ");
+      Serial.println(buttonClickCount);
+      
+      while (digitalRead(BUTTON_PIN) == 0) {
+        delay(50);
+      }
+      delay(100);
+    }
+  }
+  
+  if (buttonClickCount > 0 && currentTime - lastButtonPressTime > CLICK_TIMEOUT) {
+    processButtonClicks(buttonClickCount);
+    buttonClickCount = 0;
+    isDisplaying = true;
+    lastDisplayUpdateTime = currentTime;
+  }
+  
+  if (isDisplaying && currentTime - lastDisplayUpdateTime > DISPLAY_TIMEOUT) {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Alarm Clock");
+    lcd.setCursor(0, 1);
+    lcd.print("Click button");
+    isDisplaying = false;
+  }
+  
+  delay(50);
+}
+
+void processButtonClicks(int clicks) {
+  if (clicks == 1) {
+    displayCurrentTime();
+  } else if (clicks == 2) {
+    displayAlarmTime();
+  }
+}
+
+void displayCurrentTime() {
+  time_t now = time(nullptr);
+  struct tm* timeinfo = localtime(&now);
+  
+  int hour = timeinfo->tm_hour;
+  int minute = timeinfo->tm_min;
+  int day = timeinfo->tm_mday;
+  int month = timeinfo->tm_mon + 1;
+  
+  char greeting[15];
+  if (hour >= 5 && hour < 9) {
+    strcpy(greeting, "Good morning!");
+  } else {
+    strcpy(greeting, "Good night!");
+  }
+  
+  char ampm[3];
+  int displayHour = hour;
+  if (displayHour >= 12) {
+    strcpy(ampm, "PM");
+    if (displayHour > 12) {
+      displayHour -= 12;
+    }
+  } else {
+    strcpy(ampm, "AM");
+    if (displayHour == 0) {
+      displayHour = 12;
+    }
+  }
+  
+  char timeStr[9];
+  sprintf(timeStr, "%2d:%02d %s", displayHour, minute, ampm);
+  
+  char dateStr[11];
+  sprintf(dateStr, "%02d/%02d", month, day);
+  
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(greeting);
+  lcd.setCursor(0, 1);
+  lcd.print(timeStr);
+  
+  delay(2500);
+  
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(greeting);
+  lcd.setCursor(0, 1);
+  lcd.print(dateStr);
+}
+
+void displayAlarmTime() {
+  time_t now = time(nullptr);
+  struct tm* timeinfo = localtime(&now);
+  
+  int dayOfWeek = timeinfo->tm_wday;
+  int currentHour = timeinfo->tm_hour;
+  int currentMinute = timeinfo->tm_min;
+  
+  int alarmHour;
+  char alarmLabel[20];
+  
+  if (dayOfWeek == 0 || dayOfWeek == 6) {
+    alarmHour = 6;
+    strcpy(alarmLabel, "Weekend Alarm");
+  } else {
+    alarmHour = 7;
+    strcpy(alarmLabel, "Weekday Alarm");
+  }
+  
+  int hoursLeft = alarmHour - currentHour;
+  int minutesLeft = 0 - currentMinute;
+  
+  if (minutesLeft < 0) {
+    hoursLeft--;
+    minutesLeft += 60;
+  }
+  
+  if (hoursLeft < 0) {
+    hoursLeft += 24;
+  }
+  
+  char timeStr[6];
+  sprintf(timeStr, "%02d:%02d", hoursLeft, minutesLeft);
+  
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(alarmLabel);
+  lcd.setCursor(0, 1);
+  lcd.print("in ");
+  lcd.print(timeStr);
+}
